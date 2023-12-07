@@ -174,6 +174,13 @@ lemma exists_prime_factor (n : ℤ) (n_ne_one : n ≠ 1) (n_ne_negone : n ≠ -1
 --       rw [toNat_of_nonneg (show 0 ≤ -n by linarith)]
 --       ring
 
+lemma ne_eq_mul_even_self {x y : ℤ} (hx : x ≠ 0)(heq : x * (2 * y) = x) : False := by
+  have : 2 * y = 1 := by
+    nth_rewrite 2 [← mul_one x] at heq
+    rw [Int.eq_of_mul_eq_mul_left hx heq]
+  have : (2 * y) % 2 = 1 % 2 := by rw [this]
+  norm_num at this
+
 
 lemma singleton_eq_intersection (n : ℤ): {n} = ⋂ k ≥ 1, ArithSequence k n := by
   ext m
@@ -186,47 +193,34 @@ lemma singleton_eq_intersection (n : ℤ): {n} = ⋂ k ≥ 1, ArithSequence k n 
   · intro m_in_inter
     simp [ArithSequence] at m_in_inter
     have : ∃x, m = x + n := by
-      rcases m_in_inter 1 (by norm_num) with ⟨x, hx⟩
-      ring_nf at hx
-      use  x
-      rw [hx]
+      rcases m_in_inter 1 (by norm_num) with ⟨x, m_eq_xn⟩
+      ring_nf at m_eq_xn
+      use x
+      rw [m_eq_xn]
       ring
     rcases this with ⟨x, hx⟩
     rw [hx]at m_in_inter
     ring_nf at m_in_inter
     by_cases x_pos : 0 < x
-    · specialize m_in_inter (2*x) (by linarith)
-      rcases m_in_inter with ⟨y, hy⟩
-      have : x = 0 := by
-        have : 2 * y = 1 := by
-          nth_rewrite 2 [← mul_one x] at hy
-          have : 2 * x * y = x * (2 * y) := by ring
-          rw [this] at hy
-          rw [Int.eq_of_mul_eq_mul_left (show x ≠ 0 by linarith) hy]
-        have : (2 * y) % 2 = 1 % 2 := by rw [this]
-        norm_num at this
-      rw [this] at hx
+    · rcases m_in_inter (2*x) (by linarith) with ⟨y, two_xy_eq_x⟩
+      have x_eq_zero : x = 0 := by
+          have : x * (2*y) = x := by nth_rewrite 2 [← two_xy_eq_x]; ring
+          exact False.elim (ne_eq_mul_even_self (ne_of_gt x_pos) this)
+      rw [x_eq_zero] at hx
       simp [hx]
     · by_cases x_eq_zero : x = 0
       · rw [x_eq_zero] at hx
         simp [hx]
-      · specialize m_in_inter (2*(-x))
-        push_neg at x_pos
+      · push_neg at x_pos
         push_neg at x_eq_zero
         have : 1 ≤ 2*(-x) := by
           have : 0 ≤ -x := by linarith
           have h₁ : 0 ≠ -x := by exact Ne.symm ( Int.neg_ne_zero.mpr x_eq_zero)
           have : 0 < -x := by exact lt_of_le_of_ne this h₁
           linarith
-        specialize m_in_inter this
-        rcases m_in_inter with ⟨y, x_eq_y⟩
-        have : 2 * (-x) * y = x * (2*(-y)) := by ring
-        rw [this] at x_eq_y
-        have : 2 * (-y) = 1 := by
-          nth_rewrite 2 [← mul_one x] at x_eq_y
-          rw [Int.eq_of_mul_eq_mul_left (show x ≠ 0 by linarith) x_eq_y]
-        have : (2 * (-y)) % 2 = 1 % 2 := by rw [this]
-        norm_num at this
+        rcases m_in_inter (2*(-x)) this with ⟨y, two_xy_eq_x⟩
+        have : x * (2 * (-y)) = x := by nth_rewrite 2 [← two_xy_eq_x]; ring
+        exact False.elim (ne_eq_mul_even_self (by exact x_eq_zero) this)
 
 
 
