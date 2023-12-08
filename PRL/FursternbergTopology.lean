@@ -265,10 +265,77 @@ lemma singletons_closed (n : ℤ): IsClosed {n} := by
   intro i one_le_i
   apply IsClosed_of_ArithSequence i n one_le_i
 
+
+lemma cancel_abs (a b : ℤ) (ha : 0 < a) (hb : 0 ≤ b) (hab : a*b + b = a) : False := by
+  by_cases hb2 : b = 0
+  rw [hb2] at hab
+  linarith
+  push_neg at hb2
+  have : 0 < b := by nlinarith
+  nlinarith
+
+
+
 lemma Haussdorf_of_ArithSequenceTopology : T2Space ℤ := by
   constructor
-  intro x y x_ne_y
-  sorry
+  intro p q p_ne_q
+  use ArithSequence (|p - q| + 1) p
+  use ArithSequence (|p - q| + 1) q
+  constructor
+  apply IsOpen_of_ArithSequence
+  have : 0 ≤ |p - q| := by exact abs_nonneg (p - q)
+  linarith
+  constructor
+  apply IsOpen_of_ArithSequence
+  have : 0 ≤ |p - q| := by exact abs_nonneg (p - q)
+  linarith
+  constructor
+  simp [ArithSequence]
+  constructor
+  simp [ArithSequence]
+  intro S S_sub_p S_sub_q
+  simp at *
+  by_contra h
+  rcases Set.not_subset_iff_exists_mem_not_mem.mp h with ⟨m, m_in_s, hm⟩
+  have hmp : m ∈ ArithSequence (|p - q| + 1) p := by aesop
+  have hmq : m ∈ ArithSequence (|p - q| + 1) q := by aesop
+  simp [ArithSequence] at hmp
+  simp [ArithSequence] at hmq
+  rcases hmp with ⟨y, hy⟩
+  rcases hmq with ⟨x, hx⟩
+  have : (|p - q| + 1) * |x - y| = |p - q| := by
+    have : (|p - q| + 1) * (x - y) = p - q := by
+      rw [mul_sub]
+      rw [hy, hx]
+      ring_nf
+    nth_rewrite 2 [←this]
+    rw [abs_mul]
+    have : abs (|p - q| + 1) = |p - q| + 1 := by
+      apply abs_of_pos
+      have : 0 ≤ |p - q| := by exact abs_nonneg (p - q)
+      linarith
+    rw [this]
+  ring_nf at this
+  apply cancel_abs |p - q| |x - y|
+  apply lt_of_le_of_ne
+  exact abs_nonneg (p - q)
+  intro h
+  symm at h
+  have := abs_eq_zero.mp h
+  apply p_ne_q
+  rw [← zero_add q]
+  rw [← this]
+  ring_nf
+  exact abs_nonneg (x - y)
+  assumption
+
+
+
+
+
+
+
+
 
 lemma IsSecondCountable : SecondCountableTopology ℤ := by
   constructor
