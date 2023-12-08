@@ -275,7 +275,6 @@ lemma cancel_abs (a b : ℤ) (ha : 0 < a) (hb : 0 ≤ b) (hab : a*b + b = a) : F
   nlinarith
 
 
-
 lemma Haussdorf_of_ArithSequenceTopology : T2Space ℤ := by
   constructor
   intro p q p_ne_q
@@ -330,11 +329,44 @@ lemma Haussdorf_of_ArithSequenceTopology : T2Space ℤ := by
   assumption
 
 
-
-
-
-
-
+lemma IsTotallyDisconnected_of_ArithSequence : IsTotallyDisconnected (⊤ : Set ℤ) := by
+  apply isTotallyDisconnected_of_isClopen_set
+  intro p q pneq
+  use ArithSequence (|p - q| + 1) p
+  constructor
+  apply IsClopen_of_ArithSequence
+  have : 0 ≤ |p - q| := by exact abs_nonneg (p - q)
+  linarith
+  constructor
+  simp [ArithSequence]
+  simp [ArithSequence]
+  intro x
+  intro hp
+  have : (|p - q| + 1) * |x| = |p - q| := by
+    have h : |p - q| = |q - p| := by exact abs_sub_comm p q
+    have : q + -p = q - p := by ring
+    rw [this] at hp
+    nth_rewrite 2 [h]
+    rw [←hp]
+    rw [abs_mul]
+    have : abs (|p - q| + 1) = |p - q| + 1 := by
+      apply abs_of_pos
+      have : 0 ≤ |p - q| := by exact abs_nonneg (p - q)
+      linarith
+    rw [this]
+  apply cancel_abs |p - q| |x|
+  apply lt_of_le_of_ne
+  exact abs_nonneg (p - q)
+  intro h
+  symm at h
+  have := abs_eq_zero.mp h
+  apply pneq
+  rw [← zero_add q]
+  rw [← this]
+  ring_nf
+  exact abs_nonneg x
+  ring_nf at this
+  assumption
 
 
 lemma IsSecondCountable : SecondCountableTopology ℤ := by
