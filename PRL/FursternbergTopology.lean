@@ -272,26 +272,34 @@ lemma Haussdorf_of_ArithSequenceTopology : T2Space ℤ := by
 
 lemma IsSecondCountable : SecondCountableTopology ℤ := by
   constructor
-  use Opens
   constructor
-  · refine Set.countable_iff_exists_injOn.mpr ?h.left.a
-    have : Set.Countable (⊤ : Set ℤ) := by exact Set.to_countable ⊤
-    sorry
-  · ext U
-    constructor
-    · intro hU
-      constructor
-      simp [Opens]
-      simp [IsOpen] at hU
-      simp [TopologicalSpace.IsOpen] at hU
-      simp [Opens] at hU
-      intro n nU
-      specialize hU n nU
-      assumption
-    · intro hU
-      simp [IsOpen]
-      simp [TopologicalSpace.IsOpen]
-      sorry
+  · sorry
+  · sorry
+
+lemma Regular_of_ArithSequenceTopology : RegularSpace ℤ := by
+  apply RegularSpace.ofExistsMemNhdsIsClosedSubset
+  intro n S hS
+  rcases mem_nhds_iff.mp hS with ⟨U, subsetU, openU, nU⟩
+  cases' openU with emptyU arithU
+  aesop
+  simp at arithU
+  specialize arithU n nU
+  rcases arithU with ⟨m, hm, seq⟩
+  use ArithSequence m n
+  constructor
+  refine mem_nhds_iff.mpr ?h.left.a
+  use ArithSequence m n
+  constructor
+  rfl
+  constructor
+  exact IsOpen_of_ArithSequence _ _ hm
+  simp [ArithSequence]
+  constructor
+  exact IsClosed_of_ArithSequence _ _ hm
+  apply subset_trans seq subsetU
+
+
+
 
 
 
