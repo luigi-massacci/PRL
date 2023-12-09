@@ -3,8 +3,9 @@ import Mathlib.Topology.Clopen
 import Mathlib.Topology.Bases
 import Mathlib.Topology.Perfect
 import Mathlib.Data.Set.Finite
-
-
+import Mathlib.Topology.Metrizable.Basic
+import Mathlib.Topology.Metrizable.Urysohn
+#check em
 
 
 open Pointwise Int Topology
@@ -275,7 +276,7 @@ lemma cancel_abs (a b : ℤ) (ha : 0 < a) (hb : 0 ≤ b) (hab : a*b + b = a) : F
   nlinarith
 
 
-lemma Haussdorf_of_ArithSequenceTopology : T2Space ℤ := by
+instance Haussdorf_of_ArithSequenceTopology : T2Space ℤ := by
   constructor
   intro p q p_ne_q
   use ArithSequence (|p - q| + 1) p
@@ -369,13 +370,13 @@ lemma IsTotallyDisconnected_of_ArithSequence : IsTotallyDisconnected (⊤ : Set 
   assumption
 
 
-lemma IsSecondCountable : SecondCountableTopology ℤ := by
+instance IsSecondCountable : SecondCountableTopology ℤ := by
   constructor
   constructor
   · sorry
   · sorry
 
-lemma Regular_of_ArithSequenceTopology : RegularSpace ℤ := by
+instance Regular_of_ArithSequenceTopology : RegularSpace ℤ := by
   apply RegularSpace.ofExistsMemNhdsIsClosedSubset
   intro n S hS
   rcases mem_nhds_iff.mp hS with ⟨U, subsetU, openU, nU⟩
@@ -397,9 +398,11 @@ lemma Regular_of_ArithSequenceTopology : RegularSpace ℤ := by
   exact IsClosed_of_ArithSequence _ _ hm
   apply subset_trans seq subsetU
 
+instance T3SpaceZ : T3Space ℤ := by infer_instance
 
+#check TopologicalSpace.metrizableSpace_of_t3_second_countable
 
-
+lemma metrizable_of_ArithSequenceTopology : TopologicalSpace.MetrizableSpace ℤ := by infer_instance
 
 
 
