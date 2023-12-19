@@ -5,8 +5,6 @@ import Mathlib.Topology.Perfect
 import Mathlib.Data.Set.Finite
 import Mathlib.Topology.Metrizable.Basic
 import Mathlib.Topology.Metrizable.Urysohn
-#check em
-
 
 open Pointwise Int Topology
 
@@ -372,25 +370,8 @@ lemma IsTotallyDisconnected_of_ArithSequence : IsTotallyDisconnected (⊤ : Set 
 
 def basis := { U | ∃ m n : ℤ, 1 ≤ m ∧ U = ArithSequence m n}
 
-def f (U : Set ℤ) (hU : U ∈ basis) : ℤ × ℤ := by
-  unfold basis at hU
-  have : ∀ U ∈ basis, ∃ m n : ℤ, True
-  sorry
+instance IsSecondCountable : SecondCountableTopology ℤ := by sorry
 
-
-instance IsSecondCountable : SecondCountableTopology ℤ := by
-  constructor
-  set basis := { U | ∃ m n : ℤ, 1 ≤ m ∧ U = ArithSequence m n} with basis_def
-  use basis
-  constructor
-  · have : Countable ℤ := by exact instCountableInt
-    have : Set.Countable (⊤ : Set ℤ) := by exact Set.to_countable ⊤
-    have : Countable (ℤ × ℤ)  := by exact instCountableProd
-    refine Set.countable_iff_exists_injective.mpr ?h.left.a
-    sorry
-
-
-  · sorry
 
 instance Regular_of_ArithSequenceTopology : RegularSpace ℤ := by
   apply RegularSpace.ofExistsMemNhdsIsClosedSubset
@@ -416,9 +397,8 @@ instance Regular_of_ArithSequenceTopology : RegularSpace ℤ := by
 
 instance T3SpaceZ : T3Space ℤ := by infer_instance
 
-#check TopologicalSpace.metrizableSpace_of_t3_second_countable
 
-theorem metrizable_of_Z: TopologicalSpace.MetrizableSpace ℤ := by infer_instance
+instance : TopologicalSpace.MetrizableSpace ℤ := by infer_instance
 
 lemma Perfect_Z : Perfect (⊤ : Set ℤ) := by
   constructor
