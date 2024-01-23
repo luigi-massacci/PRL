@@ -12,7 +12,7 @@ open Pointwise Int Topology
 -- def ArithSequence (a b : ℤ) := {n | a ∣ n - b }
 
 -- Nicer version with Thanks to Alex J. Best
-def ArithSequence (m n : ℤ) := {m} * (⊤ : Set ℤ) + {n}
+def ArithSequence (m n : ℤ) := {m} * (Set.univ : Set ℤ) + {n}
 
 example (n : ℤ) : Even n ↔  n ∈ ArithSequence 2 0 := by
   constructor <;> simp [ArithSequence]
@@ -23,13 +23,22 @@ lemma Opens_isOpenEmpty : ∅ ∈ Opens := by
   simp [Opens]
 
 lemma Opens_isOpenZ : Set.univ ∈ Opens := by
+  -- rw [Opens]
+  -- right
+  -- refine Set.mem_setOf.mpr ?h.a
+  -- sorry
   simp [Opens]
   use 1
 
-lemma Opens_isOpen_sUnion : ∀ C : Set (Set ℤ), (∀ (U : Set ℤ), U ∈ C → U ∈ Opens) → (⋃₀ C) ∈ Opens := by
+lemma Opens_isOpen_sUnion :
+  ∀ C : Set (Set ℤ), (∀ (U : Set ℤ), U ∈ C → U ∈ Opens) → (⋃₀ C) ∈ Opens := by
   simp [Opens]
   intro C hC n S S_in_C n_in_S
+  -- -- specialize hC S S_in_C n n_in_S
   rcases hC S S_in_C n n_in_S with ⟨m, one_le_m, Smn_in_S⟩
+  -- use m
+  -- constructor
+  -- assumption
   refine ⟨m, one_le_m, ?_⟩
   intro k k_in_Smn
   refine ⟨S, S_in_C, ?_⟩
@@ -201,7 +210,8 @@ lemma primes_cover : ⋃ p ∈ { p : ℕ | Nat.Prime p }, ArithSequence p 0 = {-
 
 lemma Infinite_Primes : Set.Infinite { p : ℕ  | Nat.Prime p } := by
   by_contra h
-  have finite_primes : Set.Finite { p : ℕ | Nat.Prime p } := by exact Set.not_infinite.mp h
+  have finite_primes : Set.Finite { p : ℕ | Nat.Prime p } := by
+    exact Set.not_infinite.mp h-- by exact Set.not_infinite.mp h
   have isClosed_primes_union : IsClosed (⋃ p ∈ { p : ℕ | Nat.Prime p }, ArithSequence p 0) := by
     refine Set.Finite.isClosed_biUnion finite_primes ?_
     intro p prime_p
@@ -272,7 +282,6 @@ lemma cancel_abs (a b : ℤ) (ha : 0 < a) (hb : 0 ≤ b) (hab : a*b + b = a) : F
   push_neg at hb2
   have : 0 < b := by nlinarith
   nlinarith
-
 
 instance Haussdorf_of_ArithSequenceTopology : T2Space ℤ := by
   constructor
