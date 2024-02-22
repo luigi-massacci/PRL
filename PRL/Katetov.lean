@@ -9,6 +9,8 @@ class isKatetov (f : X → ℝ) : Prop where
   le_dist : ∀ x y, |f x - f y| ≤ dist x y
   le_add : ∀ x y, dist x y ≤ f x + f y
 
+-- Make into packages structor like Stieltjes This is more like "Continuous"
+
 theorem katetov_nonneg {f : X → ℝ} (h : isKatetov f) (x : X) : 0 ≤ f x := by
   have : 0 ≤ f x + f x := by rw [← dist_self x]; exact isKatetov.le_add x x
   linarith
@@ -37,9 +39,25 @@ instance {f : X → ℝ} (h : isKatetov f) : PseudoMetricSpace (OnePoint X) wher
   edist_dist x y := by exact ENNReal.coe_nnreal_eq _
 
 
-def E (X: Type*) [MetricSpace X] := {f : X → ℝ | isKatetov f}
 
-theorem E_def : f ∈ E X ↔ isKatetov f := by simp [E]
+-- def E (X: Type*) [MetricSpace X] := {f : X → ℝ | isKatetov f}
+
+structure KatetovMap (X : Type*) [MetricSpace X] where
+  toFun : X → ℝ
+  isKatetovtoFun : isKatetov toFun
+
+notation "E(" X ")" => KatetovMap X
+
+class KatetovMapClass (F : Type*) (X : outParam <| Type*) [MetricSpace X]
+  extends FunLike F X fun _ => ℝ where
+  /-- Continuity -/
+  map_katetov (f : F) : isKatetov f
+
+-- @[ext]
+-- theorem ext {f g : E(X)} (h : ∀ a, f.toFun a = g.toFun a) : f = g :=
+--   FunLike.ext _ _ h
+
+-- theorem E_def : f ∈ E X ↔ isKatetov f := by simp [E]
 
 lemma helper (x₀ : X) (h : isKatetov f) : ∀ x, |f x - dist x x₀| ≤ f x₀ := by
   refine fun x ↦ abs_le.mpr ?_
@@ -67,8 +85,9 @@ lemma sSup_eq_zero (s : Set ℝ) (hb : BddAbove s) (snonneg : ∀ x ∈ s, 0 ≤
   exact le_csSup hb xs
   exact snonneg x xs
 
-noncomputable instance [Nonempty X] : MetricSpace (E X) where
-  dist f g := sSup {|(f : X → ℝ) x - (g : X → ℝ) x| | x : X}
+
+noncomputable instance [Nonempty X] : MetricSpace E(X) where
+  dist f g := sSup {|f.toFun x - g.toFun x| | x : X}
   dist_self f := by simp [dist]
   dist_comm f g := by simp [dist, abs_sub_comm]
   dist_triangle f g h := by
@@ -76,17 +95,17 @@ noncomputable instance [Nonempty X] : MetricSpace (E X) where
     apply Real.sSup_le
     · rintro val ⟨x, rfl⟩
       rw [← csSup_add]
-      · apply le_trans <| abs_sub_le ((f : X → ℝ) x) ((g : X → ℝ) x) ((h : X → ℝ) x)
+      · apply le_trans <| abs_sub_le (f.toFun x) (g.toFun x) (h.toFun x)
         apply le_csSup
-        · apply BddAbove.add <;> apply bounded_dist <;> aesop
-        · refine Set.mem_add.mpr ⟨|(f : X → ℝ) x - (g : X → ℝ) x|, |(g : X → ℝ) x - (h : X → ℝ) x|, ?_⟩
+        · apply BddAbove.add <;> apply bounded_dist <;> simp [KatetovMap.isKatetovtoFun]
+        · refine Set.mem_add.mpr ⟨|f.toFun x - g.toFun x|, |g.toFun x - h.toFun x|, ?_⟩
           simp
       · have x₀ := Classical.choice ‹Nonempty X›
-        use |(f : X → ℝ) x₀ - (g : X → ℝ) x₀| ; simp
-      · apply bounded_dist <;> aesop
+        use |f.toFun x₀ - g.toFun x₀| ; simp
+      · apply bounded_dist <;> simp [KatetovMap.isKatetovtoFun]
       · have x₀ := Classical.choice ‹Nonempty X›
-        use |(g : X → ℝ) x₀ - (h : X → ℝ) x₀| ; simp
-      · apply bounded_dist <;> aesop
+        use |g.toFun x₀ - h.toFun x₀| ; simp
+      · apply bounded_dist <;> simp [KatetovMap.isKatetovtoFun]
     · apply add_nonneg <;>
       {
         apply Real.sSup_nonneg
@@ -97,8 +116,8 @@ noncomputable instance [Nonempty X] : MetricSpace (E X) where
     intro f g h
     simp [dist] at h
     apply sSup_eq_zero at h
-    · ext x
-      exact eq_of_sub_eq_zero <| abs_eq_zero.mp (h |(f : X → ℝ) x - (g : X → ℝ) x| ⟨x, rfl⟩)
-    · apply bounded_dist <;> aesop
+    ·
+      exact eq_of_sub_eq_zero <| abs_eq_zero.mp (h |f.toFun x - g.toFun x| ⟨x, rfl⟩)
+    · apply bounded_dist <;> simp [KatetovMap.isKatetovtoFun]
     · rintro _ ⟨x, rfl⟩; exact abs_nonneg _
   edist_dist x y:= by exact ENNReal.coe_nnreal_eq _
