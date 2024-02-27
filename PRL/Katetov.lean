@@ -218,8 +218,32 @@ noncomputable instance [Nonempty X] : CompleteSpace E(X) := by
         assumption
       · intro x y
         have h₁: ∀z,∀ ε > 0, ∃ N, ∀ n ≥ N, |f z - u n z| < ε := by sorry
-        have h₂: ∀n, 0 = u n x - u n x + u n y - u n y := by intro n; ring
-        sorry
+        have h₂: 0 = f x - f x + f y - f y := by ring
+        have h₄ : ∀ n, dist x y ≤ u n x + u n y := by intro n; exact (map_katetov (u n)).le_add x y
+        have h₃ : ∀ ε > 0, dist x y ≤ f x + f y + 2*ε := by
+          intro ε εpos
+          have hx := h₁ x ε εpos
+          have hy := h₁ y ε εpos
+          rcases hx with ⟨Nx, hNx⟩
+          rcases hy with ⟨Ny, hNy⟩
+          set N := max Nx Ny with N_def
+          specialize hNx N (show _ by simp)
+          specialize hNy N (show _ by simp)
+          specialize h₄ N
+          rw [← add_zero (u N y)] at h₄
+          rw [h₂] at h₄
+          have : (u N) x + ((u N) y + (f x - f x + f y - f y)) = f x + f y + (u N x - f x) + (u N y - f y) := by ring
+          rw [this] at h₄
+          rw [abs_sub_comm] at hNx
+          rw [abs_sub_comm] at hNy
+
+
+          sorry
+        apply le_of_forall_pos_le_add
+        intro ε εpos
+        specialize h₃ (ε/2) (by linarith)
+        ring_nf at h₃
+        assumption
 
     use ⟨f, hf⟩
     refine Metric.tendsto_atTop.mpr ?h.a
@@ -227,8 +251,14 @@ noncomputable instance [Nonempty X] : CompleteSpace E(X) := by
     obtain ⟨N, hN⟩ := Metric.cauchySeq_iff.mp hu ε hε
     by_contra h
     push_neg at h
-    obtain ⟨n, hnN, h⟩ := h N
+    obtain ⟨Nₛ, hNₛ, h⟩ := h N
     simp [dist] at h
+    rw [Real.le_sSup_iff] at h
+    have : ∃x, |f x - u Nₛ x| ≥ ε := by
+      by_contra h₂
+      push_neg at h₂
+
+
     sorry
 
 
