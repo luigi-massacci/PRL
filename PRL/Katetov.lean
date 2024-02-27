@@ -23,7 +23,6 @@ section
 
 class KatetovMapClass (F : Type*) (X : outParam <| Type*) [MetricSpace X]
   extends FunLike F X fun _ => ℝ where
-  /-- Continuity -/
   map_katetov (f : F) : isKatetov f
 
 end
@@ -40,6 +39,8 @@ variable [KatetovMapClass F X]
 instance : CoeTC F E(X) := ⟨toKatetovMap⟩
 
 end KatetovMapClass
+
+#check ContinuousMapClass
 
 namespace KatetovMap
 
@@ -91,12 +92,14 @@ theorem coe_injective : @Function.Injective E(X) (X → ℝ) (↑) := fun f g h 
 theorem coe_mk (f : X → ℝ) (h : isKatetov f) : ⇑(⟨f, h⟩ : E(X)) = f :=
   rfl
 
+end KatetovMap
+
 lemma helper (x₀ : X) (f : E(X)) : ∀ x, |f x - dist x x₀| ≤ f x₀ := by
   refine fun x ↦ abs_le.mpr ?_
   constructor
-  · have := (@isKatetov.le_add _ _ _ (map_katetov f) x x₀)
+  · have := (map_katetov f).le_add x x₀
     linarith
-  · have := le_of_abs_le (@isKatetov.le_dist _ _ _ (map_katetov f) x x₀)
+  · have := le_of_abs_le <| (map_katetov f).le_dist x x₀
     linarith
 
 theorem bounded_dist {f g : E(X)} : BddAbove {|f x - g x| | x : X} := by
@@ -107,7 +110,7 @@ theorem bounded_dist {f g : E(X)} : BddAbove {|f x - g x| | x : X} := by
     have h₂ : |f x - g x| ≤ |f x - dist x x₀| + |g x - dist x x₀|:= by
       rw [← abs_sub_comm (dist x x₀) (g x)]
       apply abs_sub_le (f x) (dist x x₀) (g x)
-    apply le_trans h₂ (add_le_add (helper x₀ f x) (helper x₀ g x))
+    apply le_trans h₂ <| add_le_add (helper x₀ f x) (helper x₀ g x)
   · refine ⟨0, fun _ ⟨x, _⟩ ↦ False.elim (hn ⟨x⟩)⟩
 
 lemma sSup_eq_zero (s : Set ℝ) (hb : BddAbove s) (snonneg : ∀ x ∈ s, 0 ≤ x) (hsup : sSup s = 0) : ∀ x ∈ s, x = 0 := by
@@ -133,28 +136,108 @@ noncomputable instance [Nonempty X] : MetricSpace E(X) where
       · apply le_trans <| abs_sub_le (f x) (g x) (h x)
         apply le_csSup
         · apply BddAbove.add <;> apply bounded_dist
-        · refine Set.mem_add.mpr ⟨|f.toFun x - g.toFun x|, |g.toFun x - h.toFun x|, ?_⟩; simp
+        · refine Set.mem_add.mpr ⟨|f x - g x|, |g x - h x|, ?_⟩; simp
       · have x₀ := Classical.choice ‹Nonempty X›
-        use |f.toFun x₀ - g.toFun x₀| ; simp
+        use |f x₀ - g x₀| ; simp
       · apply bounded_dist
       · have x₀ := Classical.choice ‹Nonempty X›
-        use |g.toFun x₀ - h.toFun x₀| ; simp
+        use |g x₀ - h x₀| ; simp
       · apply bounded_dist
     · apply add_nonneg <;>
-      {
-        apply Real.sSup_nonneg
-        rintro val ⟨x, rfl⟩
-        apply abs_nonneg
-      }
+      { apply Real.sSup_nonneg; rintro val ⟨x, rfl⟩; apply abs_nonneg}
   eq_of_dist_eq_zero := by
     intro f g h
     simp [dist] at h
     apply sSup_eq_zero at h
     · ext x
-      exact eq_of_sub_eq_zero <| abs_eq_zero.mp (h |f.toFun x - g.toFun x| ⟨x, rfl⟩)
+      exact eq_of_sub_eq_zero <| abs_eq_zero.mp (h |f x - g x| ⟨x, rfl⟩)
     · apply bounded_dist
     · rintro _ ⟨x, rfl⟩; exact abs_nonneg _
   edist_dist x y:= by exact ENNReal.coe_nnreal_eq _
+
+
+noncomputable instance [Nonempty X] : CompleteSpace E(X) := by
+    apply Metric.complete_of_cauchySeq_tendsto
+    intro u hu
+    let f : X → ℝ := by
+      intro x
+      set u' := fun n => u n x with u_def
+      have : CauchySeq u' := by
+        apply Metric.cauchySeq_iff.mpr
+        intro ε hε
+        obtain ⟨N, hN⟩ :=  Metric.cauchySeq_iff.mp hu ε hε
+        use N
+        intro m hm n hn
+        specialize hN m hm n hn
+        simp [dist] at hN
+        simp [dist]
+        refine lt_of_le_of_lt ?_ hN
+        apply le_csSup <| bounded_dist; simp
+      exact Classical.choose <| cauchySeq_tendsto_of_complete this
+    have hf : isKatetov f := by
+      constructor
+      · intro x y
+        have h₁: ∀z,∀ ε > 0, ∃ N, ∀ n ≥ N, |f z - u n z| < ε := by sorry
+        have h₂: ∀n, 0 = u n x - u n x + u n y - u n y := by intro n; ring
+        have h₃: ∀ ε > 0, |f x - f y| ≤ 2*ε + dist x y:= by
+          intro ε εpos
+          have hx := h₁ x ε εpos
+          have hy := h₁ y ε εpos
+          rcases hx with ⟨Nx, hNx⟩
+          rcases hy with ⟨Ny, hNy⟩
+          set N := max Nx Ny with N_def
+          specialize hNx N (show _ by simp)
+          specialize hNy N (show _ by simp)
+          specialize h₂ N
+          rw [← add_zero (f x)]
+          rw [h₂]
+          have : f x + ((u N) x - (u N) x + (u N) y - (u N) y) - f y
+            = (f x - (u N) x) + ((u N) y - f y) + ((u N x) - (u N y)) := by ring
+          rw [this]
+          have h₄ : |(f x - (u N) x) + ((u N) y - f y) + ((u N x) - (u N y))|
+            ≤ |(f x - (u N) x) + ((u N) y - f y)| + |((u N x) - (u N y))| := by
+            apply abs_add _ ((u N x) - (u N y))
+          have h₅ : |(f x - (u N) x) + ((u N) y - f y)| + |((u N x) - (u N y))|
+            ≤ |(f x - (u N) x)| + |((u N) y - f y)| + |((u N x) - (u N y))| :=
+            by
+            apply add_le_add_right (abs_add (f x - (u N) x) ((u N) y - f y))
+          have h₆: |(f x - (u N) x) + ((u N) y - f y) + ((u N x) - (u N y))|
+            ≤ |(f x - (u N) x)| + |((u N) y - f y)| + |((u N x) - (u N y))| := by
+              apply le_trans h₄ h₅
+          have h₇ : |(f x - (u N) x)| + |((u N) y - f y)| + |((u N x) - (u N y))|
+            ≤ 2*ε + dist x y := by
+              rw [abs_sub_comm _ (f y)]
+              have := (map_katetov (u N)).le_dist x y
+              linarith
+          apply le_trans h₆ h₇
+        apply le_of_forall_pos_le_add
+        intro ε εpos
+        specialize h₃ (ε/2) (by linarith)
+        ring_nf at h₃
+        rw [add_comm]
+        assumption
+      · intro x y
+        have h₁: ∀z,∀ ε > 0, ∃ N, ∀ n ≥ N, |f z - u n z| < ε := by sorry
+        have h₂: ∀n, 0 = u n x - u n x + u n y - u n y := by intro n; ring
+        sorry
+
+    use ⟨f, hf⟩
+    refine Metric.tendsto_atTop.mpr ?h.a
+    intro ε hε
+    obtain ⟨N, hN⟩ := Metric.cauchySeq_iff.mp hu ε hε
+    by_contra h
+    push_neg at h
+    obtain ⟨n, hnN, h⟩ := h N
+    simp [dist] at h
+    sorry
+
+
+
+
+
+
+
+
 
 
 instance (f : E(X)) : PseudoMetricSpace (OnePoint X) where
