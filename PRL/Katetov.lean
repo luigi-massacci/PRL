@@ -2,6 +2,8 @@ import Mathlib.Tactic
 import Mathlib.Topology.Compactification.OnePoint
 import Mathlib.Data.Real.Archimedean
 import Mathlib.Algebra.Order.Pointwise
+import Mathlib.Topology.Separation
+import Mathlib.Topology.MetricSpace.PseudoMetric
 
 variable {X : Type _} [MetricSpace X]
 
@@ -155,29 +157,36 @@ noncomputable instance [Nonempty X] : MetricSpace E(X) where
     · rintro _ ⟨x, rfl⟩; exact abs_nonneg _
   edist_dist x y:= by exact ENNReal.coe_nnreal_eq _
 
+open Function Set Filter Topology TopologicalSpace Metric
 
-noncomputable instance [Nonempty X] : CompleteSpace E(X) := by
-    apply Metric.complete_of_cauchySeq_tendsto
-    intro u hu
-    let f : X → ℝ := by
-      intro x
-      set u' := fun n => u n x with u_def
-      have : CauchySeq u' := by
-        apply Metric.cauchySeq_iff.mpr
-        intro ε hε
-        obtain ⟨N, hN⟩ :=  Metric.cauchySeq_iff.mp hu ε hε
-        use N
-        intro m hm n hn
-        specialize hN m hm n hn
-        simp [dist] at hN
-        simp [dist]
-        refine lt_of_le_of_lt ?_ hN
-        apply le_csSup <| bounded_dist; simp
-      exact Classical.choose <| cauchySeq_tendsto_of_complete this
-    have hf : isKatetov f := by
+
+theorem dist_coe_le_dist [Nonempty X] (f g : E(X)) (x : X) : dist (f x) (g x) ≤ dist f g :=
+  by refine le_csSup bounded_dist (by simp [dist])
+
+
+theorem dist_le (C0 : (0 : ℝ) ≤ C) (f g : E(X)) [Nonempty X]:
+  dist f g ≤ C ↔ ∀ x : X, dist (f x) (g x) ≤ C :=
+  by
+  refine ⟨fun h x => le_trans (dist_coe_le_dist _ _ x) h, ?_⟩
+  intro H
+  simp [dist]
+  apply Real.sSup_le (by simp [*] at *; assumption) (C0)
+
+
+noncomputable instance [Nonempty X] : CompleteSpace E(X) :=
+  Metric.complete_of_cauchySeq_tendsto fun (u : ℕ → E(X)) (hf : CauchySeq u) => by
+    rcases cauchySeq_iff_le_tendsto_0.1 hf with ⟨b, b0, b_bound, b_lim⟩
+    have u_bdd := fun x n m N hn hm => le_trans (dist_coe_le_dist _ _ x) (b_bound n m N hn hm)
+    have ux_cau : ∀ x, CauchySeq fun n => u n x :=
+      fun x => cauchySeq_iff_le_tendsto_0.2 ⟨b, b0, u_bdd x, b_lim⟩
+    choose f hf using fun x => cauchySeq_tendsto_of_complete (ux_cau x)
+    have fF_bdd : ∀ x N, dist (u N x) (f x) ≤ b N :=
+      fun x N => le_of_tendsto (tendsto_const_nhds.dist (hf x))
+        (Filter.eventually_atTop.2 ⟨N, fun n hn => u_bdd x N n N (le_refl N) hn⟩)
+    have kat_f : isKatetov f := by
       constructor
       · intro x y
-        have h₁: ∀z,∀ ε > 0, ∃ N, ∀ n ≥ N, |f z - u n z| < ε := by sorry
+        have h₁ := fun z ↦ Metric.tendsto_atTop.mp (hf z)
         have h₂: ∀n, 0 = u n x - u n x + u n y - u n y := by intro n; ring
         have h₃: ∀ ε > 0, |f x - f y| ≤ 2*ε + dist x y:= by
           intro ε εpos
@@ -185,12 +194,14 @@ noncomputable instance [Nonempty X] : CompleteSpace E(X) := by
           have hy := h₁ y ε εpos
           rcases hx with ⟨Nx, hNx⟩
           rcases hy with ⟨Ny, hNy⟩
+          simp [dist] at *
           set N := max Nx Ny with N_def
           specialize hNx N (show _ by simp)
           specialize hNy N (show _ by simp)
-          specialize h₂ N
           rw [← add_zero (f x)]
-          rw [h₂]
+          rw [abs_sub_comm] at hNx
+          rw [abs_sub_comm] at hNy
+          rw [(show 0 = u N x - u N x + u N y - u N y by ring)]
           have : f x + ((u N) x - (u N) x + (u N) y - (u N) y) - f y
             = (f x - (u N) x) + ((u N) y - f y) + ((u N x) - (u N y)) := by ring
           rw [this]
@@ -217,7 +228,11 @@ noncomputable instance [Nonempty X] : CompleteSpace E(X) := by
         rw [add_comm]
         assumption
       · intro x y
-        have h₁: ∀z,∀ ε > 0, ∃ N, ∀ n ≥ N, |f z - u n z| < ε := by sorry
+        have h₁: ∀z,∀ ε > 0, ∃ N, ∀ n ≥ N, |f z - u n z| < ε := by
+          intro z
+          have := Metric.tendsto_atTop.mp (hf z)
+          simp_rw [dist_comm] at this
+          exact this
         have h₂: 0 = f x - f x + f y - f y := by ring
         have h₄ : ∀ n, dist x y ≤ u n x + u n y := by intro n; exact (map_katetov (u n)).le_add x y
         have h₃ : ∀ ε > 0, dist x y ≤ f x + f y + 2*ε := by
@@ -245,33 +260,12 @@ noncomputable instance [Nonempty X] : CompleteSpace E(X) := by
         specialize h₃ (ε/2) (by linarith)
         ring_nf at h₃
         assumption
-    use ⟨f, hf⟩
-    refine Metric.tendsto_atTop.mpr ?h.a
-    intro ε hε
-    obtain ⟨Nₛ, hNₛ⟩ := Metric.cauchySeq_iff.mp hu ε hε
-    -- obtain ⟨Nₛ, hNₛ, h⟩ := h N
-    -- simp [dist] at h
-    -- -- rw [Real.le_sSup_iff] at h
-    -- have : ∃x, |u Nₛ x - f x| ≥ ε := by
-    --   by_contra h₂
-    --   push_neg at h₂
-    --   have : ∀ v ∈ {|u Nₛ x - f x| | x : X}, v ≤ ε := by
-    --     rintro v ⟨x, rfl⟩
-    --     exact le_of_lt (h₂ x)
-    --   have := Real.sSup_le this (by linarith)
-
-
-
-
-    sorry
-
-
-
-
-
-
-
-
+    · use ⟨f, kat_f⟩
+      refine' tendsto_iff_dist_tendsto_zero.2 (squeeze_zero (fun _ => dist_nonneg) _ b_lim)
+      intro N
+      have := (dist_le (b0 N) (u N) ⟨f, kat_f⟩).mpr
+      apply this
+      apply fun x => fF_bdd x N
 
 
 instance (f : E(X)) : PseudoMetricSpace (OnePoint X) where
