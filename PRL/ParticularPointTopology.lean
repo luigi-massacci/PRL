@@ -8,16 +8,16 @@ open Topology TopologicalSpace Set Function Classical Filter
 and the sets containing a specified point -/
 
 
-def ParticularPoint (X : Type*) (p : X) := X
+def ParticularPoint (α : Type*) (p : α) := α
 
 namespace ParticularPoint
 
-def of : X ≃ ParticularPoint X p:=
-  Equiv.refl X
+def of : α ≃ ParticularPoint α p:=
+  Equiv.refl α
 
-variable {X : Type*} (p : X) {s : Set (ParticularPoint X p)} (a : (ParticularPoint X p))
+variable {α : Type*} (p : α) {s : Set (ParticularPoint α p)} (a : (ParticularPoint α p))
 
-instance : TopologicalSpace (ParticularPoint X p) where
+instance : TopologicalSpace (ParticularPoint α p) where
   IsOpen s := s.Nonempty → p ∈ s
   isOpen_univ := by simp only [mem_univ, implies_true]
   isOpen_inter s t := by
@@ -51,7 +51,7 @@ theorem mem_nhds_iff :
     refine fun h ↦ ⟨h <| mem_insert a {p}, h <| mem_insert_of_mem a rfl⟩
     rintro ⟨as, ps⟩ x (hx | hx) <;> (rw [hx]; assumption)
 
-theorem empty_interior_of_closed {s : Set (ParticularPoint X p)} (hs : IsClosed s) (huniv : s ≠ univ)
+theorem empty_interior_of_closed {s : Set (ParticularPoint α p)} (hs : IsClosed s) (huniv : s ≠ univ)
   : interior s = ∅ := by
   simp only [isClosed_iff] at hs
   rcases hs with h | h
@@ -61,7 +61,7 @@ theorem empty_interior_of_closed {s : Set (ParticularPoint X p)} (hs : IsClosed 
     · assumption
     · contradiction
 
-instance : T0Space (ParticularPoint X p) where
+instance : T0Space (ParticularPoint α p) where
   t0 x y h:= by
     have : y ∈ {x, p} ∧ p ∈ {x, p} := by
       rw [← (@mem_nhds_iff _ _ {x, p}), ← h]; simp [nhds_eq, subset_refl]
@@ -69,17 +69,17 @@ instance : T0Space (ParticularPoint X p) where
       rw [← (@mem_nhds_iff _ _ {y, p}), h]; simp [nhds_eq, subset_refl]
     aesop
 
-instance : SeparableSpace (ParticularPoint X p) where
+instance : SeparableSpace (ParticularPoint α p) where
   exists_countable_dense := by
     refine ⟨{p}, countable_singleton p, dense_iff_inter_open.mpr ?_⟩
     refine fun U h₁ h₂ ↦ inter_singleton_nonempty.mpr <| ((isOpen_iff _).mp h₁ h₂)
 
-instance : FirstCountableTopology (ParticularPoint X p) where
+instance : FirstCountableTopology (ParticularPoint α p) where
   nhds_generated_countable := by
     refine fun a ↦ ⟨{{a, p}}, ?_⟩
     simp only [countable_singleton, nhds_eq, generate_singleton, and_self]
 
-theorem lem_not_valid (p : X) (hp : {p} ≠ univ) : {↑p} ∪ (interior {↑p}ᶜ) ≠ (univ : Set (ParticularPoint X p)) := by
+theorem lem_not_valid (p : α) (hp : {p} ≠ univ) : {↑p} ∪ (interior {↑p}ᶜ) ≠ (univ : Set (ParticularPoint α p)) := by
   rcases (isOpen_iff' _).mp isOpen_interior with h | _
   · rw [h]
     aesop

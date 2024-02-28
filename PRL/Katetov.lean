@@ -236,27 +236,31 @@ noncomputable instance [Nonempty X] : CompleteSpace E(X) := by
           rw [this] at h₄
           rw [abs_sub_comm] at hNx
           rw [abs_sub_comm] at hNy
-
-
-          sorry
+          have : (u N) x - f x ≤ ε := by apply le_of_lt (lt_of_abs_lt hNx)
+          have : (u N) y - f y ≤ ε := by apply le_of_lt (lt_of_abs_lt hNy)
+          have : dist x y ≤ f x + f y + 2*ε := by linarith
+          assumption
         apply le_of_forall_pos_le_add
         intro ε εpos
         specialize h₃ (ε/2) (by linarith)
         ring_nf at h₃
         assumption
-
     use ⟨f, hf⟩
     refine Metric.tendsto_atTop.mpr ?h.a
     intro ε hε
-    obtain ⟨N, hN⟩ := Metric.cauchySeq_iff.mp hu ε hε
-    by_contra h
-    push_neg at h
-    obtain ⟨Nₛ, hNₛ, h⟩ := h N
-    simp [dist] at h
-    rw [Real.le_sSup_iff] at h
-    have : ∃x, |f x - u Nₛ x| ≥ ε := by
-      by_contra h₂
-      push_neg at h₂
+    obtain ⟨Nₛ, hNₛ⟩ := Metric.cauchySeq_iff.mp hu ε hε
+    -- obtain ⟨Nₛ, hNₛ, h⟩ := h N
+    -- simp [dist] at h
+    -- -- rw [Real.le_sSup_iff] at h
+    -- have : ∃x, |u Nₛ x - f x| ≥ ε := by
+    --   by_contra h₂
+    --   push_neg at h₂
+    --   have : ∀ v ∈ {|u Nₛ x - f x| | x : X}, v ≤ ε := by
+    --     rintro v ⟨x, rfl⟩
+    --     exact le_of_lt (h₂ x)
+    --   have := Real.sSup_le this (by linarith)
+
+
 
 
     sorry
