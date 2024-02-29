@@ -234,11 +234,8 @@ noncomputable instance [Nonempty X] : CompleteSpace E(X) :=
           have : (u N) y - f y ≤ ε := by apply le_of_lt (lt_of_abs_lt hNy)
           have : dist x y ≤ f x + f y + 2*ε := by linarith
           assumption
-        apply le_of_forall_pos_le_add
-        intro ε εpos
-        specialize h₃ (ε/2) (by linarith)
-        ring_nf at h₃
-        assumption
+        refine le_of_forall_pos_le_add (fun ε εpos ↦ ?_)
+        linarith [(h₃ (ε/2) (by exact half_pos εpos))]
     · use ⟨f, kat_f⟩
       refine' tendsto_iff_dist_tendsto_zero.2 (squeeze_zero (fun _ => dist_nonneg) _ b_lim)
       refine (fun N ↦ (dist_le (b0 N) (u N) ⟨f, kat_f⟩).mpr (fun x => fF_bdd x N))
