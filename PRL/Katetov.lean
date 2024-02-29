@@ -182,10 +182,9 @@ noncomputable instance [Nonempty X] : CompleteSpace E(X) :=
           set N := max Nx Ny
           specialize hNx N (show _ by simp)
           specialize hNy N (show _ by simp)
-          rw [← add_zero (f x)]
           rw [abs_sub_comm] at hNx
           rw [abs_sub_comm] at hNy
-          rw [(show 0 = u N x - u N x + u N y - u N y by ring)]
+          rw [← add_zero (f x), (show 0 = u N x - u N x + u N y - u N y by ring)]
           have : f x + ((u N) x - (u N) x + (u N) y - (u N) y) - f y
             = (f x - (u N) x) + ((u N) y - f y) + ((u N x) - (u N y)) := by ring
           rw [this]
@@ -202,8 +201,7 @@ noncomputable instance [Nonempty X] : CompleteSpace E(X) :=
           have h₇ : |(f x - (u N) x)| + |((u N) y - f y)| + |((u N x) - (u N y))|
             ≤ 2*ε + dist x y := by
               rw [abs_sub_comm _ (f y)]
-              have := (map_katetov (u N)).le_dist x y
-              linarith
+              linarith [(map_katetov (u N)).le_dist x y]
           apply le_trans h₆ h₇
         refine le_of_forall_pos_le_add (fun ε εpos ↦ ?_)
         linarith [(h₃ (ε/2) (by exact half_pos εpos))]

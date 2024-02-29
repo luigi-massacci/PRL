@@ -3,6 +3,8 @@ import Mathlib.Data.Fintype.Card
 import Mathlib.Tactic
 import Mathlib.Data.Set.Card
 import Mathlib.Data.Fintype.Card
+import Mathlib.Topology.Algebra.Order.Field
+
 
 variable {G : Type}  [Group G] [Fintype G]
 
@@ -44,3 +46,24 @@ example
   have odd_card : Odd (ncard (univ : Set G)) := by
     simp [card_eq, card_one, even_uneq] -- simp simp simp
   exact Nat.odd_iff_not_even.mp odd_card h₀ -- found with obvious moogle query
+
+
+open Filter
+
+#check tendsto_nhdsWithin_mono_left
+example :
+  Tendsto (fun (x : ℝ) => 1/x) (nhdsWithin 0 (Set.Ioo 0 1)) atTop := by
+  simp only [one_div]
+  apply (tendsto_nhdsWithin_mono_left Set.Ioo_subset_Ioi_self tendsto_inv_zero_atTop)
+
+example :
+  Tendsto (fun (x : ℝ) => 1/x) (nhdsWithin 0 (Set.Ioo 0 1)) atTop := by
+  simp only [one_div]
+  show_term aesop
+  exact tendsto_inv_zero_atTop
+
+example :
+  Tendsto (fun (x : ℝ) => 1/x) (nhdsWithin 0 (Set.Ioo 0 1)) atTop := by
+  simp only [one_div]
+  rw [nhdsWithin_Ioo_eq_nhdsWithin_Ioi zero_lt_one]
+  exact tendsto_inv_zero_atTop
