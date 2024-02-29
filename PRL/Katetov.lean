@@ -97,30 +97,23 @@ theorem coe_mk (f : X → ℝ) (h : isKatetov f) : ⇑(⟨f, h⟩ : E(X)) = f :=
 end KatetovMap
 
 lemma helper (x₀ : X) (f : E(X)) : ∀ x, |f x - dist x x₀| ≤ f x₀ := by
-  refine fun x ↦ abs_le.mpr ?_
-  constructor
-  · have := (map_katetov f).le_add x x₀
-    linarith
-  · have := le_of_abs_le <| (map_katetov f).le_dist x x₀
-    linarith
+  refine fun x ↦ abs_le.mpr ⟨?_, ?_⟩
+  · linarith [(map_katetov f).le_add x x₀]
+  · linarith [le_of_abs_le <| (map_katetov f).le_dist x x₀]
 
 theorem bounded_dist {f g : E(X)} : BddAbove {|f x - g x| | x : X} := by
   by_cases hn : Nonempty X
   · have x₀ := Classical.choice ‹Nonempty X›
-    refine ⟨f x₀ + g x₀, fun _ ⟨x, hx⟩ ↦ ?_⟩
-    rw [← hx]
-    have h₂ : |f x - g x| ≤ |f x - dist x x₀| + |g x - dist x x₀|:= by
-      rw [← abs_sub_comm (dist x x₀) (g x)]
-      apply abs_sub_le (f x) (dist x x₀) (g x)
-    apply le_trans h₂ <| add_le_add (helper x₀ f x) (helper x₀ g x)
+    refine ⟨f x₀ + g x₀, fun _ ⟨x, hx⟩ ↦ ?_⟩; rw [← hx]
+    have h : |f x - g x| ≤ |f x - dist x x₀| + |g x - dist x x₀|:= by
+      rw [← abs_sub_comm (dist x x₀) (g x)]; apply abs_sub_le (f x) (dist x x₀) (g x)
+    apply le_trans h <| add_le_add (helper x₀ f x) (helper x₀ g x)
   · refine ⟨0, fun _ ⟨x, _⟩ ↦ False.elim (hn ⟨x⟩)⟩
 
-lemma sSup_eq_zero (s : Set ℝ) (hb : BddAbove s) (snonneg : ∀ x ∈ s, 0 ≤ x) (hsup : sSup s = 0) : ∀ x ∈ s, x = 0 := by
-  intro x xs
-  apply le_antisymm
-  rw [← hsup]
-  exact le_csSup hb xs
-  exact snonneg x xs
+lemma sSup_eq_zero (s : Set ℝ) (hb : BddAbove s) (snonneg : ∀ x ∈ s, 0 ≤ x) (hsup : sSup s = 0)
+  : ∀ x ∈ s, x = 0 := by
+  refine (fun x xs ↦ le_antisymm (by rw [← hsup]; exact le_csSup hb xs) (snonneg x xs))
+
 
 theorem katetov_nonneg (f : E(X)) (x : X) : 0 ≤ f x := by
   have : 0 ≤ f x + f x := by rw [← dist_self x]; exact (map_katetov f).le_add x x
@@ -136,9 +129,8 @@ noncomputable instance [Nonempty X] : MetricSpace E(X) where
     · rintro val ⟨x, rfl⟩
       rw [← csSup_add]
       · apply le_trans <| abs_sub_le (f x) (g x) (h x)
-        apply le_csSup
-        · apply BddAbove.add <;> apply bounded_dist
-        · refine Set.mem_add.mpr ⟨|f x - g x|, |g x - h x|, ?_⟩; simp
+        apply le_csSup (by apply BddAbove.add <;> apply bounded_dist)
+        refine Set.mem_add.mpr ⟨|f x - g x|, |g x - h x|, (by simp)⟩
       · have x₀ := Classical.choice ‹Nonempty X›
         use |f x₀ - g x₀| ; simp
       · apply bounded_dist
@@ -163,12 +155,9 @@ open Function Set Filter Topology TopologicalSpace Metric
 theorem dist_coe_le_dist [Nonempty X] (f g : E(X)) (x : X) : dist (f x) (g x) ≤ dist f g :=
   by refine le_csSup bounded_dist (by simp [dist])
 
-
 theorem dist_le (C0 : (0 : ℝ) ≤ C) (f g : E(X)) [Nonempty X]:
-  dist f g ≤ C ↔ ∀ x : X, dist (f x) (g x) ≤ C :=
-  by
-  refine ⟨fun h x => le_trans (dist_coe_le_dist _ _ x) h, ?_⟩
-  intro H
+  dist f g ≤ C ↔ ∀ x : X, dist (f x) (g x) ≤ C := by
+  refine ⟨fun h x => le_trans (dist_coe_le_dist _ _ x) h, fun H ↦ ?_⟩
   simp [dist]
   apply Real.sSup_le (by simp [*] at *; assumption) (C0)
 
@@ -184,18 +173,13 @@ noncomputable instance [Nonempty X] : CompleteSpace E(X) :=
       fun x N => le_of_tendsto (tendsto_const_nhds.dist (hf x))
         (Filter.eventually_atTop.2 ⟨N, fun n hn => u_bdd x N n N (le_refl N) hn⟩)
     have kat_f : isKatetov f := by
-      constructor
-      · intro x y
-        have h₁ := fun z ↦ Metric.tendsto_atTop.mp (hf z)
-        have h₂: ∀n, 0 = u n x - u n x + u n y - u n y := by intro n; ring
-        have h₃: ∀ ε > 0, |f x - f y| ≤ 2*ε + dist x y:= by
+      constructor <;> intro x y
+      · have h₃: ∀ ε > 0, |f x - f y| ≤ 2*ε + dist x y:= by
           intro ε εpos
-          have hx := h₁ x ε εpos
-          have hy := h₁ y ε εpos
-          rcases hx with ⟨Nx, hNx⟩
-          rcases hy with ⟨Ny, hNy⟩
+          rcases Metric.tendsto_atTop.mp (hf x) ε εpos with ⟨Nx, hNx⟩
+          rcases Metric.tendsto_atTop.mp (hf y) ε εpos with ⟨Ny, hNy⟩
           simp [dist] at *
-          set N := max Nx Ny with N_def
+          set N := max Nx Ny
           specialize hNx N (show _ by simp)
           specialize hNy N (show _ by simp)
           rw [← add_zero (f x)]
@@ -221,14 +205,9 @@ noncomputable instance [Nonempty X] : CompleteSpace E(X) :=
               have := (map_katetov (u N)).le_dist x y
               linarith
           apply le_trans h₆ h₇
-        apply le_of_forall_pos_le_add
-        intro ε εpos
-        specialize h₃ (ε/2) (by linarith)
-        ring_nf at h₃
-        rw [add_comm]
-        assumption
-      · intro x y
-        have h₁: ∀z,∀ ε > 0, ∃ N, ∀ n ≥ N, |f z - u n z| < ε := by
+        refine le_of_forall_pos_le_add (fun ε εpos ↦ ?_)
+        linarith [(h₃ (ε/2) (by exact half_pos εpos))]
+      · have h₁: ∀z,∀ ε > 0, ∃ N, ∀ n ≥ N, |f z - u n z| < ε := by
           intro z
           have := Metric.tendsto_atTop.mp (hf z)
           simp_rw [dist_comm] at this
@@ -241,7 +220,7 @@ noncomputable instance [Nonempty X] : CompleteSpace E(X) :=
           have hy := h₁ y ε εpos
           rcases hx with ⟨Nx, hNx⟩
           rcases hy with ⟨Ny, hNy⟩
-          set N := max Nx Ny with N_def
+          set N := max Nx Ny
           specialize hNx N (show _ by simp)
           specialize hNy N (show _ by simp)
           specialize h₄ N
@@ -262,11 +241,7 @@ noncomputable instance [Nonempty X] : CompleteSpace E(X) :=
         assumption
     · use ⟨f, kat_f⟩
       refine' tendsto_iff_dist_tendsto_zero.2 (squeeze_zero (fun _ => dist_nonneg) _ b_lim)
-      intro N
-      have := (dist_le (b0 N) (u N) ⟨f, kat_f⟩).mpr
-      apply this
-      apply fun x => fF_bdd x N
-
+      refine (fun N ↦ (dist_le (b0 N) (u N) ⟨f, kat_f⟩).mpr (fun x => fF_bdd x N))
 
 instance (f : E(X)) : PseudoMetricSpace (OnePoint X) where
   dist x y :=
@@ -283,10 +258,8 @@ instance (f : E(X)) : PseudoMetricSpace (OnePoint X) where
     rcases x with none | x <;> rcases y with none | y <;> rcases z with none | z <;> simp
     · exact katetov_nonneg f y
     · rw [dist_comm]
-      have := le_of_abs_le ((map_katetov f).le_dist z y)
-      linarith
+      linarith [le_of_abs_le ((map_katetov f).le_dist z y)]
     · exact (map_katetov f).le_add x z
-    · have := le_of_abs_le ((map_katetov f).le_dist x y)
-      linarith
+    · linarith [le_of_abs_le ((map_katetov f).le_dist x y)]
     · exact dist_triangle x y z
   edist_dist x y := by exact ENNReal.coe_nnreal_eq _
