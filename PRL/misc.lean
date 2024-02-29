@@ -4,6 +4,10 @@ import Mathlib.Tactic
 import Mathlib.Data.Set.Card
 import Mathlib.Data.Fintype.Card
 import Mathlib.Topology.Algebra.Order.Field
+import Mathlib.Topology.MetricSpace.Polish
+import Mathlib.MeasureTheory.Constructions.Polish
+import Mathlib.Topology.MetricSpace.CantorScheme
+import Mathlib.Topology.Bases
 
 
 variable {G : Type}  [Group G] [Fintype G]
@@ -67,3 +71,12 @@ example :
   simp only [one_div]
   rw [nhdsWithin_Ioo_eq_nhdsWithin_Ioi zero_lt_one]
   exact tendsto_inv_zero_atTop
+
+/- These are not minimal imports, but they work. -/
+
+example {u : ℕ → ENNReal} (hu : Filter.Tendsto u Filter.atTop (nhds 0))
+  {a : ENNReal} (ha : ∀ n : ℕ, a ≤ u n.succ) : a ≤ 0 := by
+  apply ge_of_tendsto hu
+  refine eventually_atTop.mpr ⟨1, fun n hn ↦ ?_⟩
+  rw [← Nat.succ_pred_eq_of_pos hn]
+  exact ha _
