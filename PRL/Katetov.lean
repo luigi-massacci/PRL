@@ -42,8 +42,6 @@ instance : CoeTC F E(X) := ⟨toKatetovMap⟩
 
 end KatetovMapClass
 
-#check ContinuousMapClass
-
 namespace KatetovMap
 
 variable {X : Type*} [MetricSpace X]
@@ -114,7 +112,6 @@ lemma sSup_eq_zero (s : Set ℝ) (hb : BddAbove s) (snonneg : ∀ x ∈ s, 0 ≤
   : ∀ x ∈ s, x = 0 := by
   refine (fun x xs ↦ le_antisymm (by rw [← hsup]; exact le_csSup hb xs) (snonneg x xs))
 
-
 theorem katetov_nonneg (f : E(X)) (x : X) : 0 ≤ f x := by
   have : 0 ≤ f x + f x := by rw [← dist_self x]; exact (map_katetov f).le_add x x
   linarith
@@ -148,9 +145,6 @@ noncomputable instance [Nonempty X] : MetricSpace E(X) where
     · apply bounded_dist
     · rintro _ ⟨x, rfl⟩; exact abs_nonneg _
   edist_dist x y:= by exact ENNReal.coe_nnreal_eq _
-
-open Function Set Filter Topology TopologicalSpace Metric
-
 
 theorem dist_coe_le_dist [Nonempty X] (f g : E(X)) (x : X) : dist (f x) (g x) ≤ dist f g :=
   by refine le_csSup bounded_dist (by simp [dist])
@@ -195,11 +189,9 @@ noncomputable instance [Nonempty X] : CompleteSpace E(X) :=
           _ = _ := by rw [← add_zero (u N y), show 0 = f x - f x + f y - f y by ring]
           _ = f x + f y + (u N x - f x) + (u N y - f y) := by ring
           _ ≤ _ := by linarith [le_of_lt (lt_of_abs_lt hNx), le_of_lt (lt_of_abs_lt hNy)]
-      constructor <;> intro x y
-      · refine le_of_forall_pos_le_add (fun ε εpos ↦ ?_)
-        linarith [h x y (ε/2) (half_pos εpos)]
-      · refine le_of_forall_pos_le_add (fun ε εpos ↦ ?_)
-        linarith [(h x y (ε/2) (by exact half_pos εpos))]
+      constructor <;>
+        { refine fun x y ↦ le_of_forall_pos_le_add (fun ε εpos ↦ ?_)
+          linarith [h x y (ε/2) (half_pos εpos)]}
     · use ⟨f, kat_f⟩
       refine' tendsto_iff_dist_tendsto_zero.2 (squeeze_zero (fun _ => dist_nonneg) _ b_lim)
       refine (fun N ↦ (dist_le (b0 N) (u N) ⟨f, kat_f⟩).mpr (fun x => fF_bdd x N))
