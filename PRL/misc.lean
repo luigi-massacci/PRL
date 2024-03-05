@@ -72,11 +72,21 @@ example :
   rw [nhdsWithin_Ioo_eq_nhdsWithin_Ioi zero_lt_one]
   exact tendsto_inv_zero_atTop
 
-/- These are not minimal imports, but they work. -/
-
 example {u : ℕ → ENNReal} (hu : Filter.Tendsto u Filter.atTop (nhds 0))
   {a : ENNReal} (ha : ∀ n : ℕ, a ≤ u n.succ) : a ≤ 0 := by
   apply ge_of_tendsto hu
   refine eventually_atTop.mpr ⟨1, fun n hn ↦ ?_⟩
   rw [← Nat.succ_pred_eq_of_pos hn]
   exact ha _
+
+open Filter
+open Set
+
+variable (a b : ℝ)
+
+example (ha : 0 < a) (hb : 0 < b) :
+  Tendsto (fun (x:ℝ) => (1 - a * x)⁻¹)
+         (nhdsWithin (a⁻¹) (Ioo 0 (a⁻¹))) atTop := by
+  have : Tendsto (fun (x:ℝ) => a * x)
+         (nhdsWithin (a⁻¹) (Ioo 0 (a⁻¹))) (nhds 1) := by
+    apply @tendsto_mul _ this

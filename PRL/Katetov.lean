@@ -161,7 +161,6 @@ theorem dist_le (C0 : (0 : ℝ) ≤ C) (f g : E(X)) [Nonempty X]:
   simp [dist]
   apply Real.sSup_le (by simp [*] at *; assumption) (C0)
 
-
 noncomputable instance [Nonempty X] : CompleteSpace E(X) :=
   Metric.complete_of_cauchySeq_tendsto fun (u : ℕ → E(X)) (hf : CauchySeq u) => by
     rcases cauchySeq_iff_le_tendsto_0.1 hf with ⟨b, b0, b_bound, b_lim⟩
@@ -173,67 +172,34 @@ noncomputable instance [Nonempty X] : CompleteSpace E(X) :=
       fun x N => le_of_tendsto (tendsto_const_nhds.dist (hf x))
         (Filter.eventually_atTop.2 ⟨N, fun n hn => u_bdd x N n N (le_refl N) hn⟩)
     have kat_f : isKatetov f := by
-      constructor <;> intro x y
-      · have h₃: ∀ ε > 0, |f x - f y| ≤ 2*ε + dist x y:= by
-          intro ε εpos
-          rcases Metric.tendsto_atTop.mp (hf x) ε εpos with ⟨Nx, hNx⟩
-          rcases Metric.tendsto_atTop.mp (hf y) ε εpos with ⟨Ny, hNy⟩
-          simp [dist] at *
-          set N := max Nx Ny
-          specialize hNx N (show _ by simp)
-          specialize hNy N (show _ by simp)
-          rw [abs_sub_comm] at hNx
-          rw [abs_sub_comm] at hNy
-          rw [← add_zero (f x), (show 0 = u N x - u N x + u N y - u N y by ring)]
-          have : f x + ((u N) x - (u N) x + (u N) y - (u N) y) - f y
-            = (f x - (u N) x) + ((u N) y - f y) + ((u N x) - (u N y)) := by ring
-          rw [this]
-          have h₄ : |(f x - (u N) x) + ((u N) y - f y) + ((u N x) - (u N y))|
-            ≤ |(f x - (u N) x) + ((u N) y - f y)| + |((u N x) - (u N y))| := by
-            apply abs_add _ ((u N x) - (u N y))
-          have h₅ : |(f x - (u N) x) + ((u N) y - f y)| + |((u N x) - (u N y))|
-            ≤ |(f x - (u N) x)| + |((u N) y - f y)| + |((u N x) - (u N y))| :=
-            by
-            apply add_le_add_right (abs_add (f x - (u N) x) ((u N) y - f y))
-          have h₆: |(f x - (u N) x) + ((u N) y - f y) + ((u N x) - (u N y))|
-            ≤ |(f x - (u N) x)| + |((u N) y - f y)| + |((u N x) - (u N y))| := by
-              apply le_trans h₄ h₅
-          have h₇ : |(f x - (u N) x)| + |((u N) y - f y)| + |((u N x) - (u N y))|
-            ≤ 2*ε + dist x y := by
-              rw [abs_sub_comm _ (f y)]
+      have h: ∀ x y,∀ ε > 0, |f x - f y| ≤ 2*ε + dist x y ∧ dist x y ≤ f x + f y + 2*ε:= by
+        intro x y ε εpos
+        rcases Metric.tendsto_atTop.mp (hf x) ε εpos with ⟨Nx, hNx⟩
+        rcases Metric.tendsto_atTop.mp (hf y) ε εpos with ⟨Ny, hNy⟩
+        simp [dist] at *
+        set N := max Nx Ny
+        specialize hNx N (le_max_left _ _)
+        specialize hNy N (le_max_right _ _)
+        constructor
+        · calc
+          _ = _ := by rw [← add_zero (f x), (show 0 = u N x - u N x + u N y - u N y by ring)]
+          _ = |(f x - (u N) x) + ((u N) y - f y) + ((u N x) - (u N y))| := by ring_nf
+          _ ≤ |(f x - (u N) x) + ((u N) y - f y)| + |((u N x) - (u N y))| := abs_add _ ((u N x) - _)
+          _ ≤ |(f x - (u N) x)| + |((u N) y - f y)| + |((u N x) - (u N y))| := by
+              apply add_le_add_right (abs_add (f x - _) _)
+          _ ≤ 2*ε + dist x y := by
+              rw [abs_sub_comm (f x)]
               linarith [(map_katetov (u N)).le_dist x y]
-          apply le_trans h₆ h₇
-        refine le_of_forall_pos_le_add (fun ε εpos ↦ ?_)
-        linarith [(h₃ (ε/2) (by exact half_pos εpos))]
-      · have h₁: ∀z,∀ ε > 0, ∃ N, ∀ n ≥ N, |f z - u n z| < ε := by
-          intro z
-          have := Metric.tendsto_atTop.mp (hf z)
-          simp_rw [dist_comm] at this
-          exact this
-        have h₂: 0 = f x - f x + f y - f y := by ring
-        have h₄ : ∀ n, dist x y ≤ u n x + u n y := by intro n; exact (map_katetov (u n)).le_add x y
-        have h₃ : ∀ ε > 0, dist x y ≤ f x + f y + 2*ε := by
-          intro ε εpos
-          have hx := h₁ x ε εpos
-          have hy := h₁ y ε εpos
-          rcases hx with ⟨Nx, hNx⟩
-          rcases hy with ⟨Ny, hNy⟩
-          set N := max Nx Ny
-          specialize hNx N (show _ by simp)
-          specialize hNy N (show _ by simp)
-          specialize h₄ N
-          rw [← add_zero (u N y)] at h₄
-          rw [h₂] at h₄
-          have : (u N) x + ((u N) y + (f x - f x + f y - f y)) = f x + f y + (u N x - f x) + (u N y - f y) := by ring
-          rw [this] at h₄
-          rw [abs_sub_comm] at hNx
-          rw [abs_sub_comm] at hNy
-          have : (u N) x - f x ≤ ε := by apply le_of_lt (lt_of_abs_lt hNx)
-          have : (u N) y - f y ≤ ε := by apply le_of_lt (lt_of_abs_lt hNy)
-          have : dist x y ≤ f x + f y + 2*ε := by linarith
-          assumption
-        refine le_of_forall_pos_le_add (fun ε εpos ↦ ?_)
-        linarith [(h₃ (ε/2) (by exact half_pos εpos))]
+        · calc
+          _ ≤ u N x + u N y := (map_katetov (u N)).le_add x y
+          _ = _ := by rw [← add_zero (u N y), show 0 = f x - f x + f y - f y by ring]
+          _ = f x + f y + (u N x - f x) + (u N y - f y) := by ring
+          _ ≤ _ := by linarith [le_of_lt (lt_of_abs_lt hNx), le_of_lt (lt_of_abs_lt hNy)]
+      constructor <;> intro x y
+      · refine le_of_forall_pos_le_add (fun ε εpos ↦ ?_)
+        linarith [h x y (ε/2) (half_pos εpos)]
+      · refine le_of_forall_pos_le_add (fun ε εpos ↦ ?_)
+        linarith [(h x y (ε/2) (by exact half_pos εpos))]
     · use ⟨f, kat_f⟩
       refine' tendsto_iff_dist_tendsto_zero.2 (squeeze_zero (fun _ => dist_nonneg) _ b_lim)
       refine (fun N ↦ (dist_le (b0 N) (u N) ⟨f, kat_f⟩).mpr (fun x => fF_bdd x N))
