@@ -114,7 +114,7 @@ lemma sSup_eq_zero (s : Set ℝ) (hb : BddAbove s) (snonneg : ∀ x ∈ s, 0 ≤
 
 theorem katetov_nonneg (f : E(X)) (x : X) : 0 ≤ f x := by
   have : 0 ≤ f x + f x := by rw [← dist_self x]; exact (map_katetov f).le_add x x
-  linarith
+  apply nonneg_add_self_iff.mp this
 
 noncomputable instance [Nonempty X] : MetricSpace E(X) where
   dist f g := sSup {|f x - g x| | x : X}
@@ -195,6 +195,18 @@ noncomputable instance [Nonempty X] : CompleteSpace E(X) :=
     · use ⟨f, kat_f⟩
       refine' tendsto_iff_dist_tendsto_zero.2 (squeeze_zero (fun _ => dist_nonneg) _ b_lim)
       refine (fun N ↦ (dist_le (b0 N) (u N) ⟨f, kat_f⟩).mpr (fun x => fF_bdd x N))
+
+instance [MetricSpace X] : X ↪ E(X) where
+  toFun x := by
+    refine ⟨fun y ↦ dist x y, ?_⟩
+    constructor <;> (intro y z; rw [dist_comm x y])
+    · rw [dist_comm x z]; exact abs_dist_sub_le y z x
+    · exact dist_triangle y x z
+  inj' x z h:= by
+    simp [*] at *
+    apply eq_of_dist_eq_zero
+    simp only [h, dist_self]
+
 
 instance (f : E(X)) : PseudoMetricSpace (OnePoint X) where
   dist x y :=
