@@ -84,9 +84,110 @@ open Set
 
 variable (a b : ℝ)
 
-example (ha : 0 < a) (hb : 0 < b) :
-  Tendsto (fun (x:ℝ) => (1 - a * x)⁻¹)
-         (nhdsWithin (a⁻¹) (Ioo 0 (a⁻¹))) atTop := by
-  have : Tendsto (fun (x:ℝ) => a * x)
-         (nhdsWithin (a⁻¹) (Ioo 0 (a⁻¹))) (nhds 1) := by
-    apply @tendsto_mul _ this
+-- example (ha : 0 < a) (hb : 0 < b) :
+--   Tendsto (fun (x:ℝ) => (1 - a * x)⁻¹)
+--          (nhdsWithin (a⁻¹) (Ioo 0 (a⁻¹))) atTop := by
+--   have : Tendsto (fun (x:ℝ) => a * x)
+--          (nhdsWithin (a⁻¹) (Ioo 0 (a⁻¹))) (nhds 1) := by
+--     apply @tendsto_mul _ this
+
+
+example {X Y : Type*} {U V : Set Y} (h : U ⊆ V) (f : X → Y) : f ⁻¹' U ⊆ f ⁻¹' V := by
+  intro _; apply h
+
+
+lemma helper₁ {α : Type*} {f g : α → ℝ} (hf : BddAbove (Set.range f))
+  (hg : BddAbove (Set.range g)) (fpos : ∀ x, 0 ≤ f x) (gpos : ∀ x, 0 ≤ g x) :
+    BddAbove {f x - g x | x} := by
+  obtain ⟨Cf, hf⟩ := hf
+  obtain ⟨Cg, hg⟩ := hg
+  refine ⟨Cf+Cg, ?_⟩
+  rintro _ ⟨x, rfl⟩
+  calc
+  _ ≤ |f x - g x|   := by exact le_abs_self _
+  _ ≤ |f x| + |g x| := by exact abs_sub _ _
+  _ = f x + g x := by rw [abs_of_nonneg (fpos x), abs_of_nonneg (gpos x)]
+  _ ≤ _  := by refine add_le_add (hf (by simp)) (hg (by simp))
+
+lemma helper₁₁ {α : Type*} {f g : α → ℝ} (hf : BddAbove (Set.range f))
+  (hg : BddAbove (Set.range g)) (fpos : ∀ x, 0 ≤ f x) (gpos : ∀ x, 0 ≤ g x) :
+    BddAbove {|f x - g x| | x} := by
+  obtain ⟨Cf, hf⟩ := hf
+  obtain ⟨Cg, hg⟩ := hg
+  refine ⟨Cf+Cg, ?_⟩
+  rintro _ ⟨x, rfl⟩
+  calc
+  _ ≤ |f x| + |g x| := by exact abs_sub _ _
+  _ = f x + g x := by rw [abs_of_nonneg (fpos x), abs_of_nonneg (gpos x)]
+  _ ≤ _  := by refine add_le_add (hf (by simp)) (hg (by simp))
+
+lemma helper₂ {α : Type*} {f g : α → ℝ} (hα : Nonempty α) (hf : BddAbove (Set.range f))
+  (hg : BddAbove (Set.range g)) (fpos : ∀ x, 0 ≤ f x) (gpos : ∀ x, 0 ≤ g x) :
+    sSup {f x | x} ≤ sSup {f x - g x | x} + sSup {g x | x} := by
+    rw [← csSup_add]
+    · apply csSup_le
+      · have z₀ := Classical.choice hα
+        refine ⟨f z₀, by simp⟩
+      · rintro _ ⟨x, rfl⟩
+        apply le_csSup
+        · apply BddAbove.add (helper₁ hf hg fpos gpos)  hg
+        · apply Set.mem_add.mpr ⟨f x - g x, by simp, g x, by simp, by ring⟩
+    · have z₀ := Classical.choice hα
+      refine ⟨f z₀ - g z₀, by simp⟩
+    · exact (helper₁ hf hg fpos gpos)
+    · have z₀ := Classical.choice hα
+      refine ⟨g z₀, by simp⟩
+    · exact hg
+
+
+lemma helper₃ {α : Type*}  {f g : α → ℝ} (hα : Nonempty α) (hb : BddAbove (Set.range |f - g|))
+  (fpos : ∀ x, 0 ≤ f x) (gpos : ∀ x, 0 ≤ g x) :
+    sSup {f x | x} ≤ sSup {|f x - g x| | x} + sSup {g x | x} := by
+  by_cases hf : BddAbove (Set.range f)
+  · by_cases hg : BddAbove (Set.range g)
+    · apply le_trans (helper₂ hα hf hg fpos gpos)
+      apply add_le_add_right
+      apply csSup_le
+      · have z₀ := Classical.choice hα
+        refine ⟨f z₀ - g z₀, by simp⟩
+      · rintro _ ⟨x, rfl⟩
+        apply le_csSup_of_le (helper₁₁ hf hg fpos gpos) (by simp) (le_abs_self _)
+    · have : ¬BddAbove (Set.range |f - g|) := by
+        intro hc
+        obtain ⟨C, hC⟩ := hc
+        obtain ⟨Cf, hf⟩ := hf
+        rw [mem_upperBounds] at hC
+        rw [mem_upperBounds] at hf
+        simp_rw [abs_sub_comm f g] at hC
+        apply hg
+        refine ⟨C + Cf, ?_⟩
+        rintro y ⟨x, rfl⟩
+        calc
+          _ = |g x| := by rw [abs_of_nonneg (gpos x)]
+          _ = |(g x - f x) + f x| := by ring_nf
+          _ ≤ |g x - f x| + |f x| := by exact abs_add (g x - f x) _
+        apply add_le_add
+        · apply hC
+          refine ⟨x, rfl⟩
+        · apply hf
+          refine ⟨x, Eq.symm <| abs_of_nonneg (fpos x)⟩
+      contradiction
+  · by_cases hg : BddAbove (Set.range g)
+    · sorry
+    · simp [Real.sSup_def]
+      aesop <;> (try contradiction)
+      sorry
+
+
+
+lemma abs_sub_Ssup_le_sup {α : Type*}  (f g : α → ℝ) (hα : Nonempty α)
+  (hb : BddAbove (Set.range |f - g|)) (fpos : ∀ x, 0 ≤ f x) (gpos : ∀ x, 0 ≤ g x) :
+  |sSup {f x | x} - sSup {g x | x}| ≤ sSup {|f x - g x| | x} := by
+    refine abs_le.mpr ⟨?_, ?_⟩
+    · have : BddAbove (Set.range |g - f|) := by
+        simp_rw [abs_sub_comm f g] at hb
+        exact hb
+      have := helper₃ hα this gpos fpos
+      simp_rw [abs_sub_comm] at this
+      linarith
+    · linarith [helper₃ hα hb fpos gpos]
